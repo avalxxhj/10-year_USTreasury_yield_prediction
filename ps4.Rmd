@@ -1,0 +1,76 @@
+---
+title: "PS4"
+author: "Ava"
+date: "3/10/2021"
+output:
+  word_document: default
+  pdf_document: default
+  html_document: default
+---
+1. The file FRTCM.csv includes month-end data on the 10-year U.S. Treasury yield going back to 1962. 
+(a) Assume that the yield follows an Ornstein-Uhlenbeck process but calibrate the process empirically using an AR(1). 
+i. Forecast the 10-year yield each month over the next 10 years ahead form the latest date (i.e., from January 2021), using all observations. 
+ii. Make an exhibit/chart that illustrates the results, not just at the end of the forecast but throughout the projection period. 
+```{r}
+library(readxl)
+FRTCM10 <- read_excel("C:/Users/avalx/Desktop/FRTCM10.xlsx")
+#ESTIMATE THE MODEL BY ALL HISTORICAL DATA
+my_data <- FRTCM10
+data.ts <- as.ts(my_data$yield)
+fit <- arima(log(data.ts), c(0, 1, 0), seasonal = list(order = c(0, 1, 0), period = 1))
+summary(fit)
+residuals <- residuals(fit)
+fit_fitted <- data.ts - residuals
+ts.plot(data.ts)
+points(fit_fitted, type = "l", col = 2, lty = 2)
+```
+```{r}
+#predict for next 10 years
+yield_forecast <- predict(fit, n.ahead = 120)
+yield_forecast
+yield_forecast_values <- yield_forecast$pred
+yield_forecast_se <- yield_forecast$se
+#plot the next 10 years
+plot.ts(data.ts, xlim = c(700, 850), ylim = c(-20, 30))
+points(yield_forecast_values , type = "l", col = 2)
+#add confidence level(95%)
+points(yield_forecast_values - 2*yield_forecast_se, type = "l", col = 4, lty = 2)
+points(yield_forecast_values + 2*yield_forecast_se, type = "l", col = 4, lty = 2)
+```
+
+(b) Now only use data from the start of 1994 for your forecasts. Repeat part (2) and also comment on any discrepancies between the two projections and what might explain them.```
+```{r}
+#subset data
+yieldSub <- my_data[386:710,]
+#ESTIMATE THE MODEL BY HISTORICAL DATA FROM 1994
+sub.ts <- as.ts(yieldSub$yield)
+fitsub <- arima(log(sub.ts), c(0, 1, 0), seasonal = list(order = c(0, 1, 0), period = 1))
+summary(fitsub)
+residuals_sub <- residuals(fitsub)
+fitsub_fitted <- sub.ts - residuals_sub
+ts.plot(sub.ts)
+points(fitsub_fitted, type = "l", col = 2, lty = 2)
+```
+```{r}
+#predict for next 10 years
+yieldsub_forecast <- predict(fitsub, n.ahead = 120)
+yieldsub_forecast
+yieldsub_forecast_values <- yieldsub_forecast$pred
+yieldsub_forecast_se <- yieldsub_forecast$se
+#plot the next 10 years
+plot.ts(sub.ts, xlim = c(300, 450), ylim = c(-20, 30))
+points(yieldsub_forecast_values , type = "l", col = 2)
+#add confidence level(95%)
+points(yieldsub_forecast_values - 2*yieldsub_forecast_se, type = "l", col = 4, lty = 2)
+points(yieldsub_forecast_values + 2*yieldsub_forecast_se, type = "l", col = 4, lty = 2)
+```
+If we estimate the model with all the historical data, the whole trend is relatively more volatile on average than estimating the model with data starting from 1994, so when it comes to prediction of the next 10 years trend, we can see that the latter forecast trend also change less dramatically than the former one in part (1)
+```{r}
+ts.plot(yield_forecast_values, yieldsub_forecast_values, xlim = c(300, 850), ylim = c(-20, 30))
+points(yield_forecast_values , type = "l", col = 2)
+points(yieldsub_forecast_values , type = "l", col = 3)
+```
+
+The divergence in the forecasts owes to (1) the fact that the unconditional means of the samples are 
+different and (2) that the mean-reversion speeds also differ. 
+
